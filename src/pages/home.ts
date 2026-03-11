@@ -105,7 +105,6 @@ export function addHomePage() {
     const sectionLine1 = addSectionLine();
 
     const bioName = addScrollText("SCOTT G. GRIFFIN");
-    const bioTitle = addScrollText("Founder / Bad ass");
     const bioDescription = addScrollText("Founder<br><br>With 37 years in the trenches of broadcast, AV, and media systems integration, I’ve built my career protecting clients from being steamrolled by complexity, bad planning, and unrealistic promises.<br><br>I’m not here to play nice — I’m here to make sure things get done right.<br><br>As a Subject Matter Expert and Owner’s Rep, I bring clear-eyed strategy, engineering leadership, and a no-BS approach to complex projects. From early-stage visioning through final implementation, I make sure my clients are fully informed and stay in control — without being buried in technical noise or vendor spin.<br><br>I’ve led high-profile projects for the NBA, WWE, Univision, Disney, and more. My background includes running a successful integration firm, managing engineering teams of 50+, and overseeing some of the largest media facility builds of the last 30 years. Whether we’re talking network ops, cloud workflows, post-production, or studio ops workflows — I’ve done it, and I bring the scars (and lessons) with me.<br><br>My job is simple: make sure my clients are protected, respected, and have delivered exactly what they need—nothing more, and absolutely nothing less.");
     const portrait = addScrollImage("papa.png");
 
@@ -293,21 +292,12 @@ export function addHomePage() {
         layoutSectionLine(sectionLine1, posY(travelingThePath) + sizeY(travelingThePath) + 0.05 * s);
 
         // bio
-        const bioLeft = 0.41 * s;
 
         styleText(bioName, { letterSpacing: 1, fontWeight: 500, color: white, fontSize: 0.02 * s });
         bioName.style.top = px(posY(sectionLine1) + 0.1 * s);
-        bioName.style.left = px(bioLeft);
 
-        styleText(bioTitle, { letterSpacing: 1, fontWeight: 300, color: white, fontSize: 0.011 * s });
-        bioTitle.style.top = px(bioName.offsetTop + bioName.offsetHeight);
-        bioTitle.style.left = px(bioLeft);
-
-        const bioDescriptionWidth = s - bioLeft - margin;
         const longParagraphsTextDetails = { letterSpacing: 1, fontWeight: 300, color: white, fontSize: 0.01 * s, lineHeight: 0.02 * s, font: "Merriweather" };
         styleText(bioDescription, longParagraphsTextDetails);
-        bioDescription.style.width = px(bioDescriptionWidth);
-        bioDescription.style.top = px(bioTitle.offsetTop + bioTitle.offsetHeight);
 
         portrait.style.height = px(posY(bioDescription) + sizeY(bioDescription) - posY(bioName));
         portrait.style.top = px(posY(bioName));
@@ -334,7 +324,11 @@ export function addHomePage() {
             return (tileSize + tileGap) * y + posY(feelConfident) + sizeY(feelConfident) + 0.04 * s;
         }
 
-        bioDescription.style.left = px(tilePosX(2)); // ZZZZ this guy got broken up
+        const bioLeft = tilePosX(2); // ZZZZ this guy got broken up
+        bioDescription.style.width = px(s - bioLeft - margin);
+        bioDescription.style.top = px(bioName.offsetTop + bioName.offsetHeight);
+        bioDescription.style.left = px(bioLeft);
+        bioName.style.left = px(bioLeft);
 
         springSig.unsubscribeAll();
         effect(() => {
@@ -446,4 +440,6 @@ export function addHomePage() {
         privacyPolicy.style.left = px(s - sizeX(privacyPolicy) - margin);
         privacyPolicy.style.top = px(posY(bigKore) + sizeY(bigKore) + 0.05 * s);
     });
+
+    setTimeout(() => bodySig.update(), 1000)
 }

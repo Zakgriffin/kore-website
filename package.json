@@ -2,15 +2,16 @@
     "name": "kore",
     "version": "1.0.0",
     "main": "index.js",
-    "homepage": "ZZZZ",
+    "homepage": "https://zakgriffin.github.io/kore-website/",
     "repository": {
         "type": "git",
-        "url": "git+https://github.com/ZZZZ.git"
+        "url": "git+https://github.com/ZakGriffin/kore-website.git"
     },
     "scripts": {
         "dev": "npx webpack serve",
         "build": "webpack",
-        "predeploy": "npm run build"
+        "predeploy": "npm run build",
+        "deploy": "gh-pages -d dist"
     },
     "devDependencies": {
         "prettier": "^2.8.1",
@@ -19,5 +20,8 @@
         "webpack": "^5.75.0",
         "webpack-cli": "^5.1.4",
         "webpack-dev-server": "^5.2.2"
+    },
+    "dependencies": {
+        "gh-pages": "^6.3.0"
     }
 }
