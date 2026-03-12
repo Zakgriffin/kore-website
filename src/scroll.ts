@@ -62,7 +62,7 @@ export const getHeaderBarHeight = () => {
     if (isLandscape()) {
         return (innerHeight - getScrollHeight()) / 2;
     } else {
-        return innerHeight * 0.1;
+        return innerHeight * 0.15;
     }
 };
 

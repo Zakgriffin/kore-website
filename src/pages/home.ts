@@ -1,15 +1,17 @@
-import { black, bodySig, jeans, metal, tileBrown, white } from "../constants";
-import { aligningWithGapsY, posX, posY, px, sizeX, sizeY, styleText } from "../layout";
+import { black, bodySig, metal, tileBrown, white } from "../constants";
+import { aligningWithGapsY, isLandscape, posEndX, posEndY, posX, posY, setImageSizeX, setImageSizeY, setPosX, setPosY, setSizeX, setSizeY, sizeX, sizeY, styleText } from "../layout";
 import { appendChildForPage, registerUpdateLayout } from "../page";
 import { addScrollImage, addScrollSvg, addScrollText, addText, getScrollWidth, resizeScrollContainerFull, scrollContainer } from "../scroll";
 import { effect, Signal } from "../signal";
 import { animateSpring, Spring } from "../spring";
 
+const T = -10000;
+
 function layoutSectionLine(sectionLine: HTMLElement, y: number) {
     const s = getScrollWidth();
-    sectionLine.style.height = px(0.001 * s);
-    sectionLine.style.width = px(innerWidth);
-    sectionLine.style.top = px(y);
+    setSizeY(sectionLine, 0.001 * s);
+    setSizeX(sectionLine, innerWidth);
+    setPosY(sectionLine, y);
 }
 
 const navItemJumpElements: {
@@ -72,31 +74,56 @@ export function addNavBar() {
     const navItems = [about, services, bio, recentProjects, contact];
 
     effect(() => {
-        const s = getScrollWidth();
-        const margin = 0.05 * s; // ZZZZ take out
+        if (isLandscape()) {
+            const s = getScrollWidth();
+            const margin = 0.05 * s; // ZZZZ take out
 
-        const navBottom = 0.05 * s;
+            const navBottom = 0.05 * s;
 
-        koreLogo.style.width = px(0.08 * s);
-        koreLogo.style.top = px(navBottom - sizeY(koreLogo) - 0.002 * s);
-        koreLogo.style.left = px(margin);
+            setSizeX(koreLogo, 0.08 * s);
+            setPosY(koreLogo, navBottom - sizeY(koreLogo) - 0.002 * s);
+            setPosX(koreLogo, margin);
 
-        tagline.style.width = px(0.17 * s);
-        tagline.style.top = px(navBottom - sizeY(tagline));
-        tagline.style.left = px(posX(koreLogo) + sizeX(koreLogo) + 0.018 * s);
+            setSizeX(tagline, 0.17 * s);
+            setPosY(tagline, navBottom - sizeY(tagline));
+            setPosX(tagline, posEndX(koreLogo) + 0.018 * s);
 
-        console.log(s);
-        const navItemTextDetails = { letterSpacing: 0.0008 * s, fontWeight: 500, color: white, fontSize: 0.01 * s, fontFamily: "Roboto" };
+            const navItemTextDetails = { letterSpacing: 0.0008 * s, fontWeight: 500, color: white, fontSize: 0.01 * s, fontFamily: "Roboto" };
 
-        for (let i = navItems.length - 1; i >= 0; i--) {
-            const navItem = navItems[i];
-            const nextNavItem = navItems[i + 1];
+            for (let i = navItems.length - 1; i >= 0; i--) {
+                const navItem = navItems[i];
+                const nextNavItem = navItems[i + 1];
 
-            styleText(navItem, navItemTextDetails);
-            if (nextNavItem) navItem.style.left = px(posX(nextNavItem) - sizeX(navItem) - 0.02 * s);
-            else navItem.style.left = px(s - sizeX(contact) - 0.07 * s);
+                styleText(navItem, navItemTextDetails);
+                if (nextNavItem) setPosX(navItem, posX(nextNavItem) - sizeX(navItem) - 0.02 * s);
+                else setPosX(navItem, s - sizeX(contact) - 0.07 * s);
 
-            navItem.style.top = px(navBottom - sizeY(navItem));
+                setPosY(navItem, navBottom - sizeY(navItem));
+            }
+        } else {
+            const s = getScrollWidth();
+            const margin = 0.09 * s; // ZZZZ take out
+
+            setSizeX(koreLogo, 0.3 * s);
+            setPosX(koreLogo, margin);
+            setPosY(koreLogo, 0.04 * s);
+
+            setSizeX(tagline, T);
+            setPosX(tagline, T);
+            setPosY(tagline, T);
+
+            const navItemTextDetails = { letterSpacing: 0.0008 * s, fontWeight: 500, color: white, fontSize: 0.01 * s, fontFamily: "Roboto" };
+
+            for (let i = navItems.length - 1; i >= 0; i--) {
+                const navItem = navItems[i];
+                const nextNavItem = navItems[i + 1];
+
+                styleText(navItem, navItemTextDetails);
+                if (nextNavItem) setPosX(navItem, T);
+                else setPosX(navItem, T);
+
+                setPosY(navItem, T);
+            }
         }
     }, [bodySig]);
 }
@@ -105,7 +132,8 @@ export function addHomePage() {
     function addSectionLine() {
         const sectionLine = document.createElement("div");
         sectionLine.style.position = "absolute";
-        sectionLine.style.background = "#111111";
+        // sectionLine.style.background = "#111111";
+        sectionLine.style.background = "red";
 
         appendChildForPage(scrollContainer, sectionLine);
         return sectionLine;
@@ -114,7 +142,7 @@ export function addHomePage() {
     const headlineText = addScrollText("PROTECT YOURSELF FROM PROJECT HAZARDS.");
     const travelingThePath = addScrollText("Travelling the path unguided can cost you.");
 
-    const logo = addScrollSvg("logo.svg");
+    const logo = addScrollImage("logo.svg");
     // logo.style.transition = "1s";
     // logo.onmouseenter = () => {
     //     logo.style.filter = "drop-shadow(10px 10px 10px rgba(255, 180, 100, 0.5))";
@@ -291,7 +319,7 @@ export function addHomePage() {
     const tellMe = addScrollText("Tell me about your project.");
     navItemJumpElements.contact = tellMe;
     const oneConversation = addScrollText("One conversation won’t cost you anything. Not having one might.");
-    const bigKore = addScrollSvg("big-kore.svg");
+    const bigKore = addScrollImage("big-kore.svg");
 
     const email = addScrollText("Email");
     giveHover(email, white, metal);
@@ -309,195 +337,391 @@ export function addHomePage() {
     const sectionLine8 = addSectionLine();
 
     registerUpdateLayout(() => {
-        resizeScrollContainerFull();
-        const s = getScrollWidth();
+        if (isLandscape()) {
+            resizeScrollContainerFull();
+            const s = getScrollWidth();
 
-        const margin = 0.05 * s;
-        const fromTop = 0.031 * s;
+            const margin = 0.05 * s;
+            const fromTop = 0.031 * s;
 
-        const bigTextTextDetails = { fontWeight: 300, color: white, fontSize: 0.075 * s, width: 0.4 * s, lineHeight: 0.084 * s, fontFamily: "Roboto" };
-        const subGrayTextDetails = { fontWeight: 400, color: metal, fontSize: 0.019 * s, fontFamily: "Roboto" };
+            const bigTextTextDetails = { fontWeight: 300, color: white, fontSize: 0.075 * s, lineHeight: 0.084 * s, fontFamily: "Roboto" };
+            const subGrayTextDetails = { fontWeight: 400, color: metal, fontSize: 0.019 * s, fontFamily: "Roboto" };
 
-        const bigTextNudge = 0.004 * s;
-        const sectionLineGap = 0.04 * s;
-        const gutter = 0.02 * s;
-        const gutteredColumn = s / 2 + gutter;
-        const gutteredWidthBetween = s / 2 - 2 * gutter;
+            const bigTextNudge = 0.004 * s;
+            const sectionLineGap = 0.04 * s;
+            const gutter = 0.02 * s;
+            const gutteredColumn = s / 2 + gutter;
+            const gutteredWidthBetween = s / 2 - 2 * gutter;
 
-        const TEMP = 0.02 * s;
+            const bigTextToSubtextGap = 0.02 * s;
 
-        styleText(headlineText, bigTextTextDetails);
-        headlineText.style.left = px(margin - bigTextNudge);
-        headlineText.style.top = px(fromTop);
+            styleText(headlineText, bigTextTextDetails);
+            setSizeX(headlineText, 0.4 * s);
+            setPosX(headlineText, margin - bigTextNudge);
+            setPosY(headlineText, fromTop);
 
-        styleText(travelingThePath, subGrayTextDetails);
-        travelingThePath.style.left = px(margin);
-        travelingThePath.style.top = px(posY(headlineText) + sizeY(headlineText) + TEMP);
+            styleText(travelingThePath, subGrayTextDetails);
+            setPosX(travelingThePath, margin);
+            setPosY(travelingThePath, posEndY(headlineText) + bigTextToSubtextGap);
 
-        logo.style.height = px(sizeY(headlineText) * 1.04);
-        logo.style.left = px(innerWidth - logo.scrollWidth - margin);
-        logo.style.top = px(fromTop - 0.03 * s);
+            setImageSizeY(logo, sizeY(headlineText) * 1.04);
+            setPosX(logo, innerWidth - logo.scrollWidth - margin);
+            setPosY(logo, fromTop - 0.03 * s);
 
-        layoutSectionLine(sectionLine1, posY(travelingThePath) + sizeY(travelingThePath) + sectionLineGap);
+            layoutSectionLine(sectionLine1, posEndY(travelingThePath) + sectionLineGap);
 
-        // about
+            // about
 
-        const longParagraphsTextDetails = { letterSpacing: 0.001 * s, fontWeight: 300, color: white, fontSize: 0.01 * s, lineHeight: 0.02 * s, fontFamily: "Merriweather" };
-        styleText(aboutDescription, longParagraphsTextDetails);
+            const longParagraphsTextDetails = { letterSpacing: 0.001 * s, fontWeight: 300, color: white, fontSize: 0.01 * s, lineHeight: 0.02 * s, fontFamily: "Merriweather" };
+            styleText(aboutDescription, longParagraphsTextDetails);
 
-        const scrollWidth = innerWidth - 2 * margin; // ZZZZ another scroll width?
-        const tileGap = 0.015 * s;
-        const tileSize = (scrollWidth - tileGap * (skillTileCountX - 1)) / skillTileCountX;
+            const scrollWidth = innerWidth - 2 * margin; // ZZZZ another scroll width?
+            const tileGap = 0.015 * s;
+            const tileSize = (scrollWidth - tileGap * (skillTileCountX - 1)) / skillTileCountX;
 
-        function tilePosX(x: number) {
-            return margin + (tileSize + tileGap) * x;
-        }
-
-        function tilePosY(y: number) {
-            return (tileSize + tileGap) * y + posY(feelConfident) + sizeY(feelConfident) + 0.04 * s;
-        }
-
-        const aboutLeft = tilePosX(2);
-        styleText(aboutName, { letterSpacing: 0.001 * s, fontWeight: 500, color: white, fontSize: 0.02 * s, fontFamily: "Roboto" });
-        aboutName.style.top = px(posY(sectionLine1) + sectionLineGap);
-        aboutName.style.left = px(aboutLeft);
-
-        aboutDescription.style.width = px(s - aboutLeft - margin);
-        aboutDescription.style.top = px(posY(aboutName) + sizeY(aboutName));
-        aboutDescription.style.left = px(aboutLeft);
-
-        document.body.offsetHeight; // flush or whatever
-        portrait.style.height = px(sizeY(aboutName) + sizeY(aboutDescription));
-        portrait.style.top = px(posY(aboutName));
-        portrait.style.left = px(margin);
-
-        layoutSectionLine(sectionLine2, posY(aboutDescription) + sizeY(aboutDescription) + sectionLineGap);
-
-        // tiles
-
-        const feelConfidentTextDetails = { fontWeight: 300, color: white, fontSize: 0.028 * s, fontFamily: "Roboto" };
-        styleText(feelConfident, feelConfidentTextDetails);
-        feelConfident.style.top = px(posY(sectionLine2) + sectionLineGap);
-        feelConfident.style.left = px(margin);
-
-        springSig.unsubscribeAll();
-        effect(() => {
-            for (const skillTile of skillTiles) {
-                const { container, titleText, descriptionText, springX, springY, springSizeY } = skillTile;
-
-                container.style.width = px(tileSize);
-                container.style.height = px(tileSize * springSizeY.position + (springSizeY.position - 1) * tileGap);
-
-                container.style.left = px(tilePosX(springX.position));
-                container.style.top = px(tilePosY(springY.position));
-
-                styleText(titleText, { letterSpacing: 0.0004 * s, fontWeight: 500, color: black, fontSize: 0.018 * s, fontFamily: "Roboto" });
-                titleText.style.left = px(0.08 * tileSize);
-                titleText.style.top = px(tileSize / 2 - sizeY(titleText) / 2);
-
-                styleText(descriptionText, { letterSpacing: 0.0004 * s, fontWeight: 400, color: black, fontSize: 0.011 * s, lineHeight: 0.016 * s, width: tileSize - 0.03 * s, fontFamily: "Roboto" });
-                descriptionText.style.left = px(0.08 * tileSize);
-                descriptionText.style.top = px(0.11 * s);
+            function tilePosX(x: number) {
+                return margin + (tileSize + tileGap) * x;
             }
-        }, [springSig]);
 
-        layoutSectionLine(sectionLine3, tilePosY(1) + tileSize + sectionLineGap);
-
-        styleText(bigNames, bigTextTextDetails);
-        bigNames.style.top = px(posY(sectionLine3) + sectionLineGap);
-        bigNames.style.left = px(margin - bigTextNudge);
-
-        const hasTackedTextDetails = { fontWeight: 300, color: metal, fontSize: 0.014 * s, lineHeight: 0.025 * s, width: sizeX(bigNames) - 0.025 * s, fontFamily: "Roboto" };
-        styleText(hasTackled, hasTackedTextDetails);
-        hasTackled.style.top = px(posY(bigNames) + sizeY(bigNames) + TEMP);
-        hasTackled.style.left = px(margin);
-
-        const lastBigName = bigNameClientTexts[bigNameClientTexts.length - 1][0];
-        const bigNamesTextDetails = { fontWeight: 300, color: white, fontSize: 0.018 * s, fontFamily: "Roboto" };
-        for (let y = 0; y < bigNameClientTexts.length; y++) {
-            for (let x = 0; x < bigNameClientTexts[y].length; x++) {
-                const o = bigNameClientTexts[y][x];
-
-                styleText(o, bigNamesTextDetails);
-
-                o.style.top = px(posY(bigNames) + 0.01 * s + 0.032 * y * s);
-                o.style.left = px(gutteredColumn + 0.22 * x * s);
+            function tilePosY(y: number) {
+                return (tileSize + tileGap) * y + posEndY(feelConfident) + 0.04 * s;
             }
+
+            const aboutLeft = tilePosX(2);
+            styleText(aboutName, { letterSpacing: 0.001 * s, fontWeight: 500, color: white, fontSize: 0.02 * s, fontFamily: "Roboto" });
+            setPosY(aboutName, posY(sectionLine1) + sectionLineGap);
+            setPosX(aboutName, aboutLeft);
+
+            setSizeX(aboutDescription, s - aboutLeft - margin);
+            setPosY(aboutDescription, posEndY(aboutName));
+            setPosX(aboutDescription, aboutLeft);
+
+            setImageSizeY(portrait, sizeY(aboutName) + sizeY(aboutDescription));
+            setPosY(portrait, posY(aboutName));
+            setPosX(portrait, margin);
+
+            layoutSectionLine(sectionLine2, posEndY(aboutDescription) + sectionLineGap);
+
+            // tiles
+
+            const feelConfidentTextDetails = { fontWeight: 300, color: white, fontSize: 0.028 * s, fontFamily: "Roboto" };
+            styleText(feelConfident, feelConfidentTextDetails);
+            setPosY(feelConfident, posY(sectionLine2) + sectionLineGap);
+            setPosX(feelConfident, margin);
+
+            springSig.unsubscribeAll();
+            effect(() => {
+                for (const skillTile of skillTiles) {
+                    const { container, titleText, descriptionText, springX, springY, springSizeY } = skillTile;
+
+                    setSizeX(container, tileSize);
+                    setSizeY(container, tileSize * springSizeY.position + (springSizeY.position - 1) * tileGap);
+
+                    setPosX(container, tilePosX(springX.position));
+                    setPosY(container, tilePosY(springY.position));
+
+                    styleText(titleText, { letterSpacing: 0.0004 * s, fontWeight: 500, color: black, fontSize: 0.018 * s, fontFamily: "Roboto" });
+                    setPosX(titleText, 0.08 * tileSize);
+                    setPosY(titleText, tileSize / 2 - sizeY(titleText) / 2);
+
+                    styleText(descriptionText, { letterSpacing: 0.0004 * s, fontWeight: 400, color: black, fontSize: 0.011 * s, lineHeight: 0.016 * s, fontFamily: "Roboto" });
+                    setSizeX(descriptionText, tileSize - 0.03 * s);
+                    setPosX(descriptionText, 0.08 * tileSize);
+                    setPosY(descriptionText, 0.11 * s);
+                }
+            }, [springSig]);
+
+            layoutSectionLine(sectionLine3, tilePosY(1) + tileSize + sectionLineGap);
+
+            styleText(bigNames, bigTextTextDetails);
+            setPosY(bigNames, posY(sectionLine3) + sectionLineGap);
+            setPosX(bigNames, margin - bigTextNudge);
+
+            const hasTackedTextDetails = { fontWeight: 300, color: metal, fontSize: 0.014 * s, lineHeight: 0.025 * s, fontFamily: "Roboto" };
+            styleText(hasTackled, hasTackedTextDetails);
+            setSizeX(hasTackled, sizeX(bigNames));
+            setPosY(hasTackled, posEndY(bigNames) + bigTextToSubtextGap);
+            setPosX(hasTackled, margin);
+
+            const lastBigName = bigNameClientTexts[bigNameClientTexts.length - 1][0];
+            const bigNamesTextDetails = { fontWeight: 300, color: white, fontSize: 0.018 * s, fontFamily: "Roboto" };
+            for (let y = 0; y < bigNameClientTexts.length; y++) {
+                for (let x = 0; x < bigNameClientTexts[y].length; x++) {
+                    const o = bigNameClientTexts[y][x];
+
+                    styleText(o, bigNamesTextDetails);
+
+                    setPosY(o, posY(bigNames) + 0.01 * s + 0.032 * y * s);
+                    setPosX(o, gutteredColumn + 0.22 * x * s);
+                }
+            }
+
+            layoutSectionLine(sectionLine4, posEndY(lastBigName) + sectionLineGap);
+
+            setSizeX(griffinBlackWhite, s);
+            setPosY(griffinBlackWhite, posEndY(sectionLine4) + sectionLineGap);
+
+            const griffinBlackWhiteTextDetails = { fontWeight: 400, color: black, fontSize: 0.02 * s, lineHeight: 0.04 * s, fontFamily: "Merriweather" };
+            griffinBlackWhiteText.style.fontStyle = "italic";
+            styleText(griffinBlackWhiteText, griffinBlackWhiteTextDetails);
+            setPosX(griffinBlackWhiteText, gutteredColumn);
+            setPosY(griffinBlackWhiteText, posY(griffinBlackWhite) + sizeY(griffinBlackWhite) / 2 - sizeY(griffinBlackWhiteText) / 2);
+
+            layoutSectionLine(sectionLine5, posEndY(griffinBlackWhite) + sectionLineGap);
+
+            // bio
+
+            styleText(bioHeader, bigTextTextDetails);
+            setPosY(bioHeader, posEndY(sectionLine5) + sectionLineGap);
+            setPosX(bioHeader, margin - bigTextNudge);
+
+            styleText(bioText, longParagraphsTextDetails);
+            setSizeX(bioText, gutteredWidthBetween);
+            setPosY(bioText, posY(bioHeader));
+            setPosX(bioText, gutteredColumn);
+
+            layoutSectionLine(sectionLine6, posEndY(bioText) + sectionLineGap);
+
+            styleText(recentProjectHeader, bigTextTextDetails);
+            setPosY(recentProjectHeader, posEndY(sectionLine6) + sectionLineGap);
+            setPosX(recentProjectHeader, margin - bigTextNudge);
+
+            for (const { projectNameText, projectDescriptionText } of projects) {
+                styleText(projectNameText, { letterSpacing: 0.001 * s, fontWeight: 500, color: white, fontSize: 0.02 * s, fontFamily: "Roboto" });
+                styleText(projectDescriptionText, longParagraphsTextDetails);
+                setSizeX(projectDescriptionText, gutteredWidthBetween);
+            }
+
+            const projectsWithSpacing = projects.flatMap((project) => [project.projectNameText, 0.006 * s, project.projectDescriptionText, 0.028 * s]);
+            const [alignments, _] = aligningWithGapsY(projectsWithSpacing);
+            for (const { element, offset } of alignments) {
+                setPosY(element, posY(recentProjectHeader) + offset);
+                setPosX(element, gutteredColumn);
+            }
+            const lastProjectDescription = projects[projects.length - 1].projectDescriptionText;
+
+            // contact
+
+            layoutSectionLine(sectionLine7, posEndY(lastProjectDescription) + sectionLineGap);
+
+            styleText(tellMe, { letterSpacing: 0.3, fontWeight: 400, color: white, fontSize: 0.019 * s, fontFamily: "Roboto" });
+            setPosX(tellMe, margin);
+            setPosY(tellMe, posEndY(sectionLine7) + sectionLineGap);
+
+            styleText(oneConversation, subGrayTextDetails);
+            setPosX(oneConversation, margin);
+            setPosY(oneConversation, posEndY(tellMe) + 0.008 * s);
+
+            setImageSizeX(bigKore, s - margin * 2);
+            setPosX(bigKore, margin);
+            setPosY(bigKore, posEndY(oneConversation) + 0.1 * s);
+
+            const linkTextDetails = { letterSpacing: 0.3, fontWeight: 400, color: metal, fontSize: 0.019 * s, fontFamily: "Roboto" };
+            styleText(email, linkTextDetails);
+            setPosX(email, margin);
+            setPosY(email, posEndY(bigKore) + 0.05 * s);
+
+            styleText(linkedIn, linkTextDetails);
+            setPosX(linkedIn, margin + 0.07 * s);
+            setPosY(linkedIn, posEndY(bigKore) + 0.05 * s);
+
+            styleText(privacyPolicy, linkTextDetails);
+            setPosX(privacyPolicy, s - sizeX(privacyPolicy) - margin);
+            setPosY(privacyPolicy, posEndY(bigKore) + 0.05 * s);
+
+            layoutSectionLine(sectionLine8, posEndY(email) + sectionLineGap);
+        } else {
+            resizeScrollContainerFull();
+            const s = getScrollWidth();
+
+            const margin = 0.09 * s;
+            const fromTop = 0.031 * s;
+            const betweenMargin = s - margin * 2;
+
+            const bigTextTextDetails = { fontWeight: 300, color: white, fontSize: 0.15 * s, lineHeight: 0.18 * s, fontFamily: "Roboto" };
+            const subGrayTextDetails = { fontWeight: 400, color: metal, fontSize: 0.09 * s, lineHeight: 0.13 * s, fontFamily: "Roboto" };
+
+            const bigTextNudge = 0.004 * s;
+            const sectionLineGap = 0.085 * s;
+
+            const bigTextToSubtextGap = 0.03 * s;
+
+            styleText(headlineText, bigTextTextDetails);
+            setPosX(headlineText, margin);
+            setPosY(headlineText, 0);
+
+            styleText(travelingThePath, subGrayTextDetails);
+            setSizeX(travelingThePath, betweenMargin);
+            setPosX(travelingThePath, margin);
+            setPosY(travelingThePath, posEndY(headlineText) + bigTextToSubtextGap);
+
+            setImageSizeX(logo, betweenMargin);
+            setPosX(logo, margin);
+            setPosY(logo, posEndY(travelingThePath) + s * 0.17);
+
+            layoutSectionLine(sectionLine1, posEndY(logo) + sectionLineGap);
+
+            // about
+
+            setImageSizeX(portrait, betweenMargin);
+            setPosX(portrait, margin);
+            setPosY(portrait, posEndY(sectionLine1) + sectionLineGap);
+
+            styleText(aboutName, { letterSpacing: 0.001 * s, fontWeight: 500, color: white, fontSize: 0.09 * s, fontFamily: "Roboto" });
+            setPosX(aboutName, margin);
+            setPosY(aboutName, posEndY(portrait) + 0.2 * s);
+
+            const longParagraphsTextDetails = { letterSpacing: 0.001 * s, fontWeight: 300, color: white, fontSize: 0.045 * s, lineHeight: 0.1 * s, fontFamily: "Merriweather" };
+            styleText(aboutDescription, longParagraphsTextDetails);
+            setSizeX(aboutDescription, betweenMargin);
+            setPosX(aboutDescription, margin);
+            setPosY(aboutDescription, posEndY(aboutName) + 0.006 * s);
+
+            layoutSectionLine(sectionLine2, posEndY(aboutDescription) + sectionLineGap);
+
+            // tiles
+
+            const feelConfidentTextDetails = { fontWeight: 300, color: white, fontSize: 0.028 * s, fontFamily: "Roboto" };
+            styleText(feelConfident, feelConfidentTextDetails);
+            setPosY(feelConfident, T);
+            setPosX(feelConfident, T);
+
+            const scrollWidth = innerWidth - 2 * margin; // ZZZZ another scroll width?
+            const tileGap = 0.015 * s;
+            const tileSize = (scrollWidth - tileGap * (skillTileCountX - 1)) / skillTileCountX;
+
+            function tilePosX(x: number) {
+                return T;
+                // return margin + (tileSize + tileGap) * x;
+            }
+
+            function tilePosY(y: number) {
+                return T;
+                // return (tileSize + tileGap) * y + posEndY(feelConfident) + 0.04 * s;
+            }
+
+            springSig.unsubscribeAll();
+            effect(() => {
+                for (const skillTile of skillTiles) {
+                    const { container, titleText, descriptionText, springX, springY, springSizeY } = skillTile;
+
+                    setSizeX(container, tileSize);
+                    setSizeY(container, tileSize * springSizeY.position + (springSizeY.position - 1) * tileGap);
+
+                    setPosX(container, tilePosX(springX.position));
+                    setPosY(container, tilePosY(springY.position));
+
+                    styleText(titleText, { letterSpacing: 0.0004 * s, fontWeight: 500, color: black, fontSize: 0.018 * s, fontFamily: "Roboto" });
+                    setPosX(titleText, 0.08 * tileSize);
+                    setPosY(titleText, tileSize / 2 - sizeY(titleText) / 2);
+
+                    styleText(descriptionText, { letterSpacing: 0.0004 * s, fontWeight: 400, color: black, fontSize: 0.011 * s, lineHeight: 0.016 * s, fontFamily: "Roboto" });
+                    setSizeX(descriptionText, tileSize - 0.03 * s);
+                    setPosX(descriptionText, 0.08 * tileSize);
+                    setPosY(descriptionText, 0.11 * s);
+                }
+            }, [springSig]);
+
+            layoutSectionLine(sectionLine3, T);
+
+            styleText(bigNames, bigTextTextDetails);
+            setPosY(bigNames, T);
+            setPosX(bigNames, T);
+
+            const hasTackedTextDetails = { fontWeight: 300, color: metal, fontSize: 0.014 * s, lineHeight: 0.025 * s, fontFamily: "Roboto" };
+            styleText(hasTackled, hasTackedTextDetails);
+            setSizeX(hasTackled, sizeX(bigNames) - 0.025 * s);
+            setPosY(hasTackled, T);
+            setPosX(hasTackled, T);
+
+            const lastBigName = bigNameClientTexts[bigNameClientTexts.length - 1][0];
+            const bigNamesTextDetails = { fontWeight: 300, color: white, fontSize: 0.018 * s, fontFamily: "Roboto" };
+            for (let y = 0; y < bigNameClientTexts.length; y++) {
+                for (let x = 0; x < bigNameClientTexts[y].length; x++) {
+                    const o = bigNameClientTexts[y][x];
+
+                    styleText(o, bigNamesTextDetails);
+
+                    setPosY(o, T);
+                    setPosX(o, T);
+                }
+            }
+
+            layoutSectionLine(sectionLine4, posEndY(lastBigName) + sectionLineGap);
+
+            setSizeX(griffinBlackWhite, T);
+            setPosY(griffinBlackWhite, T);
+
+            const griffinBlackWhiteTextDetails = { fontWeight: 400, color: black, fontSize: 0.02 * s, lineHeight: 0.04 * s, fontFamily: "Merriweather" };
+            griffinBlackWhiteText.style.fontStyle = "italic";
+            styleText(griffinBlackWhiteText, griffinBlackWhiteTextDetails);
+            setPosX(griffinBlackWhiteText, T);
+            setPosY(griffinBlackWhiteText, T);
+
+            layoutSectionLine(sectionLine5, T);
+
+            // bio
+
+            styleText(bioHeader, bigTextTextDetails);
+            setPosX(bioHeader, margin);
+            setPosY(bioHeader, posEndY(sectionLine2) + sectionLineGap); // ZZZZ skipped a bunch
+
+            styleText(bioText, longParagraphsTextDetails);
+            setSizeX(bioText, betweenMargin);
+            setPosX(bioText, margin);
+            setPosY(bioText, posEndY(bioHeader) + bigTextToSubtextGap);
+
+            layoutSectionLine(sectionLine6, posEndY(bioText) + sectionLineGap);
+
+            styleText(recentProjectHeader, bigTextTextDetails);
+            setPosX(recentProjectHeader, margin);
+            setPosY(recentProjectHeader, posY(sectionLine6) + sectionLineGap);
+
+            for (const { projectNameText, projectDescriptionText } of projects) {
+                styleText(projectNameText, { letterSpacing: 0.001 * s, fontWeight: 500, color: white, fontSize: 0.08 * s, fontFamily: "Roboto" });
+                styleText(projectDescriptionText, longParagraphsTextDetails);
+                setSizeX(projectDescriptionText, betweenMargin);
+            }
+
+            const projectsWithSpacing = projects.flatMap((project) => [project.projectNameText, 0.02 * s, project.projectDescriptionText, 0.1 * s]);
+            const [alignments, _] = aligningWithGapsY(projectsWithSpacing);
+            for (const { element, offset } of alignments) {
+                setPosX(element, margin);
+                setPosY(element, posEndY(recentProjectHeader) + 0.13 * s + offset);
+            }
+            const lastProjectDescription = projects[projects.length - 1].projectDescriptionText;
+
+            // contact
+
+            layoutSectionLine(sectionLine7, posEndY(lastProjectDescription) + sectionLineGap);
+
+            styleText(tellMe, { letterSpacing: 0.3, fontWeight: 400, color: white, fontSize: 0.09 * s, lineHeight: 0.13 * s, fontFamily: "Roboto" });
+            setSizeX(tellMe, 0.7 * s);
+            setPosX(tellMe, margin);
+            setPosY(tellMe, posY(sectionLine7) + 0.4 * s);
+
+            styleText(oneConversation, subGrayTextDetails);
+            setPosX(oneConversation, margin);
+            setPosY(oneConversation, posEndY(tellMe) + 0.016 * s);
+
+            setImageSizeX(bigKore, betweenMargin);
+            setPosX(bigKore, margin);
+            setPosY(bigKore, posEndY(oneConversation) + 0.5 * s);
+
+            const linkTextDetails = { letterSpacing: 0.3, fontWeight: 400, color: metal, fontSize: 0.08 * s, fontFamily: "Roboto" };
+            styleText(email, linkTextDetails);
+            setPosX(email, margin);
+            setPosY(email, posEndY(bigKore) + 0.1 * s);
+
+            styleText(linkedIn, linkTextDetails);
+            setPosX(linkedIn, posEndX(email) + 0.08 * s);
+            setPosY(linkedIn, posEndY(bigKore) + 0.1 * s);
+
+            styleText(privacyPolicy, linkTextDetails);
+            setPosX(privacyPolicy, margin);
+            setPosY(privacyPolicy, posEndY(email) + 0.08 * s);
+
+            layoutSectionLine(sectionLine8, posEndY(privacyPolicy) + sectionLineGap);
         }
-
-        layoutSectionLine(sectionLine4, posY(lastBigName) + sizeY(lastBigName) + sectionLineGap);
-
-        griffinBlackWhite.style.width = px(s);
-        griffinBlackWhite.style.top = px(posY(sectionLine4) + sizeY(sectionLine4) + sectionLineGap);
-
-        const griffinBlackWhiteTextDetails = { fontWeight: 400, color: black, fontSize: 0.02 * s, width: 0.41 * s, lineHeight: 0.04 * s, fontFamily: "Merriweather" };
-        griffinBlackWhiteText.style.fontStyle = "italic";
-        styleText(griffinBlackWhiteText, griffinBlackWhiteTextDetails);
-        griffinBlackWhiteText.style.left = px(gutteredColumn);
-        griffinBlackWhiteText.style.top = px(posY(griffinBlackWhite) + sizeY(griffinBlackWhite) / 2 - sizeY(griffinBlackWhiteText) / 2);
-
-        layoutSectionLine(sectionLine5, posY(griffinBlackWhite) + sizeY(griffinBlackWhite) + sectionLineGap);
-
-        // bio
-
-        styleText(bioHeader, bigTextTextDetails);
-        bioHeader.style.top = px(posY(sectionLine5) + sizeY(sectionLine5) + sectionLineGap);
-        bioHeader.style.left = px(margin - bigTextNudge);
-
-        styleText(bioText, longParagraphsTextDetails);
-        bioText.style.width = px(gutteredWidthBetween);
-        bioText.style.top = px(posY(bioHeader));
-        bioText.style.left = px(gutteredColumn);
-
-        layoutSectionLine(sectionLine6, posY(bioText) + sizeY(bioText) + sectionLineGap);
-
-        styleText(recentProjectHeader, bigTextTextDetails);
-        recentProjectHeader.style.top = px(posY(sectionLine6) + sizeY(sectionLine6) + sectionLineGap);
-        recentProjectHeader.style.left = px(margin - bigTextNudge);
-
-        for (const { projectNameText, projectDescriptionText } of projects) {
-            styleText(projectNameText, { letterSpacing: 0.001 * s, fontWeight: 500, color: white, fontSize: 0.02 * s, fontFamily: "Roboto" });
-            styleText(projectDescriptionText, longParagraphsTextDetails);
-            projectDescriptionText.style.width = px(gutteredWidthBetween);
-        }
-
-        const projectsWithSpacing = projects.flatMap((project) => [project.projectNameText, 0.006 * s, project.projectDescriptionText, 0.028 * s]);
-        const [alignments, _] = aligningWithGapsY(projectsWithSpacing);
-        for (const { element, offset } of alignments) {
-            element.style.top = px(posY(recentProjectHeader) + offset);
-            element.style.left = px(gutteredColumn);
-        }
-        const lastProjectDescription = projects[projects.length - 1].projectDescriptionText;
-
-        // contact
-
-        layoutSectionLine(sectionLine7, posY(lastProjectDescription) + sizeY(lastProjectDescription) + sectionLineGap);
-
-        styleText(tellMe, { letterSpacing: 0.3, fontWeight: 400, color: white, fontSize: 0.019 * s, fontFamily: "Roboto" });
-        tellMe.style.left = px(margin);
-        tellMe.style.top = px(posY(sectionLine7) + sizeY(sectionLine7) + sectionLineGap);
-
-        styleText(oneConversation, subGrayTextDetails);
-        oneConversation.style.left = px(margin);
-        oneConversation.style.top = px(posY(tellMe) + sizeY(tellMe) + 0.008 * s);
-
-        bigKore.style.width = px(s - margin * 2);
-        bigKore.style.left = px(margin);
-        bigKore.style.top = px(posY(oneConversation) + sizeY(oneConversation) + 0.1 * s);
-
-        const linkTextDetails = { letterSpacing: 0.3, fontWeight: 400, color: metal, fontSize: 0.019 * s, fontFamily: "Roboto" };
-        styleText(email, linkTextDetails);
-        email.style.left = px(margin);
-        email.style.top = px(posY(bigKore) + sizeY(bigKore) + 0.05 * s);
-
-        styleText(linkedIn, linkTextDetails);
-        linkedIn.style.left = px(margin + 0.07 * s);
-        linkedIn.style.top = px(posY(bigKore) + sizeY(bigKore) + 0.05 * s);
-
-        styleText(privacyPolicy, linkTextDetails);
-        privacyPolicy.style.left = px(s - sizeX(privacyPolicy) - margin);
-        privacyPolicy.style.top = px(posY(bigKore) + sizeY(bigKore) + 0.05 * s);
-
-        layoutSectionLine(sectionLine8, posY(email) + sizeY(email) + sectionLineGap);
     });
 }

@@ -11,7 +11,6 @@ export interface TextDetails {
     fontSize: number;
     color: string;
     letterSpacing?: number;
-    width?: number;
     lineHeight?: number;
 }
 
@@ -45,9 +44,25 @@ export function posX(element: BoxElement) {
     return element instanceof HTMLElement ? element.offsetLeft : unpx(element.style.left);
 }
 
+export function setPosX(element: BoxElement, x: number) {
+    element.style.left = px(x);
+}
+
 export function posY(element: BoxElement) {
     // return element.getBoundingClientRect().top;
     return element instanceof HTMLElement ? element.offsetTop : unpx(element.style.top);
+}
+
+export function posEndX(element: BoxElement) {
+    return posX(element) + sizeX(element);
+}
+
+export function setPosY(element: BoxElement, y: number) {
+    element.style.top = px(y);
+}
+
+export function posEndY(element: BoxElement) {
+    return posY(element) + sizeY(element);
 }
 
 export function sizeX(element: BoxElement) {
@@ -55,9 +70,27 @@ export function sizeX(element: BoxElement) {
     return element instanceof HTMLElement ? element.offsetWidth : element.clientWidth;
 }
 
+export function setSizeX(element: BoxElement, x: number) {
+    element.style.width = px(x);
+}
+
+export function setImageSizeX(image: HTMLImageElement, x: number) {
+    setSizeX(image, x)
+    setSizeY(image, x * image.naturalHeight / image.naturalWidth)
+}
+
 export function sizeY(element: BoxElement) {
     // return element.getBoundingClientRect().height;
     return element instanceof HTMLElement ? element.offsetHeight : element.clientHeight;
+}
+
+export function setSizeY(element: BoxElement, y: number) {
+    element.style.height = px(y);
+}
+
+export function setImageSizeY(image: HTMLImageElement, y: number) {
+    setSizeY(image, y)
+    setSizeX(image, y *  image.naturalWidth / image.naturalHeight)
 }
 
 // ZZZZ want a short hand for common simple use
@@ -92,6 +125,5 @@ export function styleText(scrollText: HTMLElement, s: TextDetails) {
     scrollText.style.fontSize = px(s.fontSize);
     scrollText.style.color = s.color;
     if (s.letterSpacing) scrollText.style.letterSpacing = px(s.letterSpacing);
-    if (s.width) scrollText.style.width = px(s.width);
     if (s.lineHeight) scrollText.style.lineHeight = px(s.lineHeight);
 }
