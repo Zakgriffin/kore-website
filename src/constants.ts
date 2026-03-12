@@ -6,7 +6,6 @@ export const bodySig = new Signal();
 window.onresize = bodySig.update;
 
 export const midBrown = "#603913";
-// export const jeans = "#00396F";
 export const jeans = "rgb(38, 51, 86)"
 export const deepBrown = "#3C2415";
 export const black = "#000000";

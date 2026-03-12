@@ -6,13 +6,13 @@ interface ElementAlignment {
 }
 
 export interface TextDetails {
-    letterSpacing: number;
+    fontFamily: string;
     fontWeight: number;
-    color: string;
     fontSize: number;
+    color: string;
+    letterSpacing?: number;
     width?: number;
     lineHeight?: number;
-    font?: string;
 }
 
 export type BoxElement = HTMLElement | SVGSVGElement;
@@ -41,18 +41,22 @@ function unpx(value: string) {
     return Number(value.slice(0, -2));
 }
 export function posX(element: BoxElement) {
+    // return element.getBoundingClientRect().left;
     return element instanceof HTMLElement ? element.offsetLeft : unpx(element.style.left);
 }
 
 export function posY(element: BoxElement) {
+    // return element.getBoundingClientRect().top;
     return element instanceof HTMLElement ? element.offsetTop : unpx(element.style.top);
 }
 
 export function sizeX(element: BoxElement) {
+    // return element.getBoundingClientRect().width;
     return element instanceof HTMLElement ? element.offsetWidth : element.clientWidth;
 }
 
 export function sizeY(element: BoxElement) {
+    // return element.getBoundingClientRect().height;
     return element instanceof HTMLElement ? element.offsetHeight : element.clientHeight;
 }
 
@@ -82,12 +86,12 @@ export function centerElementY(element: HTMLElement) {
 }
 
 export function styleText(scrollText: HTMLElement, s: TextDetails) {
-    scrollText.style.fontFamily = s.font ?? "Roboto";
     scrollText.style.position = "absolute";
+    scrollText.style.fontFamily = s.fontFamily;
     scrollText.style.fontWeight = "" + s.fontWeight;
-    scrollText.style.color = s.color;
-    scrollText.style.letterSpacing = px(s.letterSpacing);
     scrollText.style.fontSize = px(s.fontSize);
+    scrollText.style.color = s.color;
+    if (s.letterSpacing) scrollText.style.letterSpacing = px(s.letterSpacing);
     if (s.width) scrollText.style.width = px(s.width);
     if (s.lineHeight) scrollText.style.lineHeight = px(s.lineHeight);
 }

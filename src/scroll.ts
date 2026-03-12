@@ -1,7 +1,7 @@
 import { body, fadeInAnimation, metal, midBrown } from "./constants";
 import { isLandscape, px, styleText, TextDetails } from "./layout";
 import { appendChildForPage, awaitLayoutForImageLoading } from "./page";
-import { createElementSVG, fetchSVG } from "./util";
+import { createElementSVG, fetchSVG, mapRange } from "./util";
 
 export interface TextSquare {
     major: HTMLElement;
@@ -133,8 +133,9 @@ export function getScrollHeight() {
 }
 
 export function getScrollWidth() {
-    const SCROLL_WIDTH_PROPORTION = 1;
-    return innerWidth * SCROLL_WIDTH_PROPORTION;
+    return innerWidth
+    // const SCROLL_WIDTH_PROPORTION = 1;
+    // return innerWidth * SCROLL_WIDTH_PROPORTION;
 }
 
 export function centerWithinScrollY(element: HTMLElement | SVGSVGElement, scale: number) {

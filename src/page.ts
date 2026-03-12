@@ -1,4 +1,5 @@
 import { bodySig } from "./constants";
+import { TextDetails } from "./layout";
 import { effect } from "./signal";
 import { sleep } from "./util";
 
