@@ -1,4 +1,4 @@
-import { addHomePage, addNavBar } from "./pages/home";
+import { addHomePage, addMenuButton, addNavBar } from "./pages/home";
 
 (async () => {
     await Promise.all([
@@ -18,5 +18,6 @@ import { addHomePage, addNavBar } from "./pages/home";
     await new Promise(requestAnimationFrame);
 
     addNavBar();
+    addMenuButton()
     addHomePage();
 })();

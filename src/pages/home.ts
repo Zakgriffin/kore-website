@@ -1,9 +1,11 @@
 import { black, bodySig, metal, tileBrown, white } from "../constants";
-import { aligningWithGapsY, centerY, isLandscape, posEndX, posEndY, posX, posY, setImageSizeX, setImageSizeY, setPosX, setPosY, setSizeX, setSizeY, sizeX, sizeY, styleText } from "../layout";
+import { aligningWithGapsY, centerWithGapY, centerX, isLandscape, posEndX, posEndY, posX, posY, px, setImageSizeX, setImageSizeY, setPosX, setPosY, setSizeX, setSizeY, sizeX, sizeY, styleText } from "../layout";
+import { Modal } from "../modal";
 import { appendChildForPage, registerUpdateLayout } from "../page";
-import { addScrollImage, addScrollSvg, addScrollText, addText, getHeaderBarHeight, getScrollWidth, resizeScrollContainerFull, scrollContainer } from "../scroll";
+import { addScrollImage, addScrollText, addText, getHeaderBarHeight, getScrollWidth, resizeScrollContainerFull, scrollContainer } from "../scroll";
 import { effect, Signal } from "../signal";
 import { animateSpring, Spring } from "../spring";
+import { colorOnHover, createIconSVG, makeLine, setAttributes } from "../util";
 
 const T = -10000;
 
@@ -14,19 +16,106 @@ function layoutSectionLine(sectionLine: HTMLElement, y: number) {
     setPosY(sectionLine, y);
 }
 
-const navItemJumpElements: {
-    about?: HTMLElement;
-    services?: HTMLElement;
-    bio?: HTMLElement;
-    recentProjects?: HTMLElement;
-    contact?: HTMLElement;
-} = {};
+interface NavItem {
+    name: string;
+    barElement: HTMLElement;
+    jumpElement: HTMLElement;
+}
+
+const navItemFromString = {
+    about: {} as NavItem,
+    services: {} as NavItem,
+    bio: {} as NavItem,
+    recentProjects: {} as NavItem,
+    contact: {} as NavItem,
+};
 
 function giveHover(element: HTMLElement, enterColor: string, leaveColor: string) {
     element.style.cursor = "pointer";
     element.style.transition = "color 0.2s";
     element.onmouseenter = () => (element.style.color = enterColor);
     element.onmouseleave = () => (element.style.color = leaveColor);
+}
+
+export function addMenuButton() {
+    const sz = 60;
+    const menuButton = createIconSVG(sz);
+    menuButton.style.stroke = white;
+    const menuLine = makeLine(menuButton, 4);
+    const line1 = menuLine();
+    const line2 = menuLine();
+    const line3 = menuLine();
+
+    const menuModal = new Modal(
+        "#000000ee",
+        (backdrop) => {
+            const menuPageNavs: HTMLElement[] = [];
+            for (const [pageName, navItem] of Object.entries(navItemFromString)) {
+                const menuPageNav = document.createElement("span");
+                menuPageNav.style.position = "absolute";
+                menuPageNav.innerText = navItem.name;
+                menuPageNav.style.cursor = "pointer";
+
+                menuPageNav.onclick = () => {
+                    menuModal.beginClose();
+                    navItem.barElement.click();
+                };
+
+                backdrop.appendChild(menuPageNav);
+                menuPageNavs.push(menuPageNav);
+            }
+
+            menuModal.onLayout = () => {
+                for (const menuPageNav of menuPageNavs) {
+                    const s = getScrollWidth();
+                    styleText(menuPageNav, { letterSpacing: 0.005 * s, fontWeight: 500, color: white, fontSize: 0.06 * s, fontFamily: "Roboto" });
+                    setPosX(menuPageNav, s / 2 - sizeX(menuPageNav) / 2);
+                }
+                centerWithGapY(menuPageNavs, innerHeight * 0.08, innerHeight / 2);
+            };
+
+            menuButton.style.zIndex = "1";
+        },
+        (time) => {
+            const s = time * sz;
+            setAttributes(line1, { x1: 0, y1: 0, x2: sz, y2: s });
+            line2.style.opacity = (sz - s) / sz + "";
+            setAttributes(line2, { x1: 0, y1: sz / 2, x2: sz, y2: sz / 2 });
+            setAttributes(line3, { x1: 0, y1: sz, x2: sz, y2: sz - s });
+        },
+        () => {
+            menuButton.style.zIndex = "0";
+        }
+    );
+
+    menuButton.onclick = () => {
+        if (menuModal.isOpening) {
+            menuModal.beginClose();
+        } else {
+            menuModal.beginOpen();
+        }
+    };
+
+    document.body.appendChild(menuButton);
+
+    effect(() => {
+        if (isLandscape()) {
+            setSizeX(menuButton, 0);
+            setSizeY(menuButton, 0);
+            setPosX(menuButton, 0);
+            setPosY(menuButton, 0);
+        } else {
+            const s = getScrollWidth();
+            const margin = 0.09 * s;
+
+            const size = 0.07 * s;
+            setSizeX(menuButton, size);
+            setSizeY(menuButton, size);
+
+            setPosX(menuButton, innerWidth - size - margin);
+            setPosY(menuButton, (getHeaderBarHeight() - size) / 2);
+        }
+    }, [bodySig]);
 }
 
 export function addNavBar() {
@@ -50,28 +139,32 @@ export function addNavBar() {
     tagline.src = "tagline.svg";
     document.body.appendChild(tagline);
 
-    function addNavItem(navItemName: string, k: keyof typeof navItemJumpElements) {
-        const navItem = document.createElement("p");
-        navItem.style.whiteSpace = "nowrap";
-        navItem.innerText = navItemName;
+    function addNavItem(navItemName: string) {
+        const barElement = document.createElement("p");
+        barElement.style.whiteSpace = "nowrap";
+        barElement.innerText = navItemName;
 
-        navItem.onclick = () => {
-            navItemJumpElements[k]?.scrollIntoView({ behavior: "smooth", block: "start" });
+        const navItem = {} as NavItem;
+        navItem.barElement = barElement;
+        navItem.name = navItemName;
+
+        barElement.onclick = () => {
+            navItem.jumpElement.scrollIntoView({ behavior: "smooth", block: "start" });
         };
 
-        giveHover(navItem, metal, white);
+        giveHover(barElement, metal, white);
 
-        document.body.appendChild(navItem);
+        document.body.appendChild(barElement);
         return navItem;
     }
 
-    const about = addNavItem("ABOUT", "about");
-    const services = addNavItem("SERVICES", "services");
-    const bio = addNavItem("BIO", "bio");
-    const recentProjects = addNavItem("RECENT PROJECTS", "recentProjects");
-    const contact = addNavItem("CONTACT", "contact");
+    navItemFromString.about = addNavItem("ABOUT");
+    navItemFromString.services = addNavItem("SERVICES");
+    navItemFromString.bio = addNavItem("BIO");
+    navItemFromString.recentProjects = addNavItem("RECENT PROJECTS");
+    navItemFromString.contact = addNavItem("CONTACT");
 
-    const navItems = [about, services, bio, recentProjects, contact];
+    const barElements = Object.values(navItemFromString).map((b) => b.barElement);
 
     effect(() => {
         if (isLandscape()) {
@@ -90,13 +183,13 @@ export function addNavBar() {
 
             const navItemTextDetails = { letterSpacing: 0.0008 * s, fontWeight: 500, color: white, fontSize: 0.01 * s, fontFamily: "Roboto" };
 
-            for (let i = navItems.length - 1; i >= 0; i--) {
-                const navItem = navItems[i];
-                const nextNavItem = navItems[i + 1];
+            for (let i = barElements.length - 1; i >= 0; i--) {
+                const navItem = barElements[i];
+                const nextNavItem = barElements[i + 1];
 
                 styleText(navItem, navItemTextDetails);
                 if (nextNavItem) setPosX(navItem, posX(nextNavItem) - sizeX(navItem) - 0.02 * s);
-                else setPosX(navItem, s - sizeX(contact) - 0.07 * s);
+                else setPosX(navItem, s - sizeX(navItem) - 0.07 * s);
 
                 setPosY(navItem, navBottom - sizeY(navItem));
             }
@@ -114,9 +207,9 @@ export function addNavBar() {
 
             const navItemTextDetails = { letterSpacing: 0.0008 * s, fontWeight: 500, color: white, fontSize: 0.01 * s, fontFamily: "Roboto" };
 
-            for (let i = navItems.length - 1; i >= 0; i--) {
-                const navItem = navItems[i];
-                const nextNavItem = navItems[i + 1];
+            for (let i = barElements.length - 1; i >= 0; i--) {
+                const navItem = barElements[i];
+                const nextNavItem = barElements[i + 1];
 
                 styleText(navItem, navItemTextDetails);
                 if (nextNavItem) setPosX(navItem, T);
@@ -155,14 +248,14 @@ export function addHomePage() {
     const sectionLine1 = addSectionLine();
 
     const aboutName = addScrollText("SCOTT G. GRIFFIN");
-    navItemJumpElements.about = aboutName;
+    navItemFromString.about.jumpElement = aboutName;
     const aboutDescription = addScrollText("Founder<br><br>With 37 years in the trenches of broadcast, AV, and media systems integration, I’ve built my career protecting clients from being steamrolled by complexity, bad planning, and unrealistic promises.<br><br>I’m not here to play nice — I’m here to make sure things get done right.<br><br>As a Subject Matter Expert and Owner’s Rep, I bring clear-eyed strategy, engineering leadership, and a no-BS approach to complex projects. From early-stage visioning through final implementation, I make sure my clients are fully informed and stay in control — without being buried in technical noise or vendor spin.<br><br>I’ve led high-profile projects for the NBA, WWE, Univision, Disney, and more. My background includes running a successful integration firm, managing engineering teams of 50+, and overseeing some of the largest media facility builds of the last 30 years. Whether we’re talking network ops, cloud workflows, post-production, or studio ops workflows — I’ve done it, and I bring the scars (and lessons) with me.<br><br>My job is simple: make sure my clients are protected, respected, and have delivered exactly what they need—nothing more, and absolutely nothing less.");
     const portrait = addScrollImage("papa.png");
 
     const sectionLine2 = addSectionLine();
 
     const feelConfident = addScrollText("FEEL CONFIDENT KNOWING YOU’VE GOT IT ALL COVERED.");
-    navItemJumpElements.services = feelConfident;
+    navItemFromString.services.jumpElement = feelConfident;
 
     let skillTileCountX = 1;
     let skillTileCountY = 1;
@@ -363,7 +456,7 @@ export function addHomePage() {
     // bio
 
     const bioHeader = addScrollText("HOW WE<br>GOT HERE");
-    navItemJumpElements.bio = bioHeader;
+    navItemFromString.bio.jumpElement = bioHeader;
     const bioText = addScrollText("I’ve always focused on the conceptualization and implementation of advanced technology solutions for facility and event systems integration. Along the way, that’s meant serving as design engineer, project manager, sales engineer, planning consultant, business builder/owner, and team leader.<br><br>It all started in technical theater, where I worked as a master electrician, lighting designer, sound designer, and front-of-house sound engineer in summer stock, touring, and off-Broadway theater. Following several years of freelance theatrical and concert technical support, I landed at AF Associates, a broadcast systems integrator.<br><br>After working on systems engineering efforts for NBC’s Today Show, CNBC, and USA Network, I moved to Sony Systems Integration. There, I oversaw design/builds for the Tribune Station Group and supported CBS Broadcast Operations & Engineering<br><br>At this point, I teamed up with two partners to launch The Systems Group. TSG specialized in large-scale, fast-track systems integration projects for the broadcast industry. During our 20-year run, we designed and built facilities for Serious Satellite Radio, MTV Networks, Syracuse University Newhouse, NFL Films Audio, NBCU, and Corus Entertainment, plus 200+ systems integration projects worldwide.<br><br>When TSG was acquired by Diversified in 2016, I established a small studio within the larger corporation, which allowed me to focus on critical early-stage project conceptualization, planning, and budgeting. Throughout those years, I was able to work shoulder to shoulder with some of the best and brightest across a wide range of disciplines in the media and entertainment industry. And the rest, as they say, is history.<br><br>Today, KORE offers a radically streamlined way to leverage a career’s worth of expertise, experience, and extensive industry relationships to help make sure your next project runs smoothly from planning to acceptance.<br><br>I hold a Bachelor of Science in Electrical Engineering from Penn State University, and am a member of SMPTE, AES, and SVG. I’m also kind to animals.");
 
     const sectionLine6 = addSectionLine();
@@ -371,7 +464,7 @@ export function addHomePage() {
     // recent projects
 
     const recentProjectHeader = addScrollText("RECENT<br>PROJECTS");
-    navItemJumpElements.recentProjects = recentProjectHeader;
+    navItemFromString.recentProjects.jumpElement = recentProjectHeader;
 
     function addProjectPair(projectName: string, projectDescription: string) {
         const projectNameText = addScrollText(projectName);
@@ -387,7 +480,7 @@ export function addHomePage() {
     const sectionLine7 = addSectionLine();
 
     const tellMe = addScrollText("Tell me about your project.");
-    navItemJumpElements.contact = tellMe;
+    navItemFromString.contact.jumpElement = tellMe;
     const oneConversation = addScrollText("One conversation won’t cost you anything. Not having one might.");
     const bigKore = addScrollImage("big-kore.svg");
 
@@ -523,6 +616,7 @@ export function addHomePage() {
 
             const griffinBlackWhiteTextDetails = { fontWeight: 400, color: black, fontSize: 0.02 * s, lineHeight: 0.04 * s, fontFamily: "Merriweather" };
             styleText(griffinBlackWhiteText, griffinBlackWhiteTextDetails);
+            setSizeX(griffinBlackWhiteText, gutteredWidthBetween);
             setPosX(griffinBlackWhiteText, gutteredColumn);
             setPosY(griffinBlackWhiteText, posY(griffinBlackWhiteLandscape) + sizeY(griffinBlackWhiteLandscape) / 2 - sizeY(griffinBlackWhiteText) / 2);
 
