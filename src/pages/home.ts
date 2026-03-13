@@ -1,7 +1,7 @@
 import { black, bodySig, metal, tileBrown, white } from "../constants";
-import { aligningWithGapsY, isLandscape, posEndX, posEndY, posX, posY, setImageSizeX, setImageSizeY, setPosX, setPosY, setSizeX, setSizeY, sizeX, sizeY, styleText } from "../layout";
+import { aligningWithGapsY, centerY, isLandscape, posEndX, posEndY, posX, posY, setImageSizeX, setImageSizeY, setPosX, setPosY, setSizeX, setSizeY, sizeX, sizeY, styleText } from "../layout";
 import { appendChildForPage, registerUpdateLayout } from "../page";
-import { addScrollImage, addScrollSvg, addScrollText, addText, getScrollWidth, resizeScrollContainerFull, scrollContainer } from "../scroll";
+import { addScrollImage, addScrollSvg, addScrollText, addText, getHeaderBarHeight, getScrollWidth, resizeScrollContainerFull, scrollContainer } from "../scroll";
 import { effect, Signal } from "../signal";
 import { animateSpring, Spring } from "../spring";
 
@@ -76,7 +76,7 @@ export function addNavBar() {
     effect(() => {
         if (isLandscape()) {
             const s = getScrollWidth();
-            const margin = 0.05 * s; // ZZZZ take out
+            const margin = 0.05 * s;
 
             const navBottom = 0.05 * s;
 
@@ -106,7 +106,7 @@ export function addNavBar() {
 
             setSizeX(koreLogo, 0.3 * s);
             setPosX(koreLogo, margin);
-            setPosY(koreLogo, 0.04 * s);
+            setPosY(koreLogo, (getHeaderBarHeight() - sizeY(koreLogo)) / 2);
 
             setSizeX(tagline, T);
             setPosX(tagline, T);
@@ -132,8 +132,7 @@ export function addHomePage() {
     function addSectionLine() {
         const sectionLine = document.createElement("div");
         sectionLine.style.position = "absolute";
-        // sectionLine.style.background = "#111111";
-        sectionLine.style.background = "red";
+        sectionLine.style.background = "#111111";
 
         appendChildForPage(scrollContainer, sectionLine);
         return sectionLine;
@@ -165,8 +164,10 @@ export function addHomePage() {
     const feelConfident = addScrollText("FEEL CONFIDENT KNOWING YOU’VE GOT IT ALL COVERED.");
     navItemJumpElements.services = feelConfident;
 
+    let skillTileCountX = 1;
+    let skillTileCountY = 1;
     const springSig = new Signal();
-    function addSkillTile(title: string, description: string, x: number, y: number) {
+    function addSkillTile(title: string, description: string) {
         const container = document.createElement("div");
         container.style.position = "absolute";
         container.style.background = metal;
@@ -178,8 +179,8 @@ export function addHomePage() {
         descriptionText.style.opacity = "0";
         descriptionText.style.transition = "opacity 0.25s";
 
-        const springX = new Spring(x);
-        const springY = new Spring(y);
+        const springX = new Spring(0);
+        const springY = new Spring(0);
         const springSizeY = new Spring(1);
         springX.setStiffnessCritical(200);
         springY.setStiffnessCritical(200);
@@ -189,34 +190,60 @@ export function addHomePage() {
             return skillTiles.find((s) => s.springX.target === x && s.springY.target === y)!;
         }
 
-        function flip(spring1: Spring, spring2: Spring) {
+        function flipTiles(spring1: Spring, spring2: Spring) {
             const s = spring1.target;
             spring1.target = spring2.target;
             spring2.target = s;
         }
 
         const onClick = () => {
-            if (springY.target === holeSkillTile.springY.target) {
-                flip(
-                    tileAt(holeSkillTile.springX.target, 1 - holeSkillTile.springY.target).springY, //
-                    holeSkillTile.springY
-                );
+            let holeDiffX = 0;
+            let holeDiffY = 0;
+            function recalculateDiffs() {
+                holeDiffX = holeGoalX - holeSkillTile.springX.target;
+                holeDiffY = holeGoalY - holeSkillTile.springY.target;
             }
 
-            const direcionX = springX.target - holeSkillTile.springX.target < 0 ? -1 : 1;
-            for (let x = holeSkillTile.springX.target; x !== springX.target; x += direcionX) {
-                flip(
-                    tileAt(x, holeSkillTile.springY.target).springX, //
-                    tileAt(x + direcionX, holeSkillTile.springY.target).springX
-                );
+            let holeGoalX = springX.target;
+            let holeGoalY = springY.target + 1;
+            recalculateDiffs();
+
+            const startedLow = holeGoalY >= skillTileCountY;
+            if ((holeDiffX === 0 && holeDiffY > 0) || holeGoalY >= skillTileCountY) {
+                holeGoalY -= 1;
+                recalculateDiffs();
             }
 
-            if (springY.target === 1) {
-                flip(
-                    tileAt(springX.target, 1 - springY.target).springY, //
-                    springY
-                );
+            function slideHoleY(goalY: number) {
+                const newDiffY = goalY - holeSkillTile.springY.target;
+                const directionY = newDiffY > 0 ? 1 : -1;
+                for (let y = holeSkillTile.springY.target; y !== goalY; y += directionY) {
+                    flipTiles(
+                        tileAt(holeSkillTile.springX.target, y).springY, //
+                        tileAt(holeSkillTile.springX.target, y + directionY).springY
+                    );
+                }
+                recalculateDiffs();
             }
+            function slideHoleX(goalX: number) {
+                const newDiffX = goalX - holeSkillTile.springX.target;
+                const directionX = newDiffX > 0 ? 1 : -1;
+                for (let x = holeSkillTile.springX.target; x !== goalX; x += directionX) {
+                    flipTiles(
+                        tileAt(x, holeSkillTile.springY.target).springX, //
+                        tileAt(x + directionX, holeSkillTile.springY.target).springX
+                    );
+                }
+                recalculateDiffs();
+            }
+
+            if (startedLow) slideHoleY(skillTileCountY - 2);
+            else if (holeDiffY > 0) slideHoleY(holeGoalY);
+
+            if (holeDiffX !== 0) slideHoleX(holeGoalX);
+
+            if (startedLow) slideHoleY(holeGoalY);
+            else if (holeDiffY < 0) slideHoleY(holeGoalY);
 
             for (const skillTile of skillTiles) {
                 if (skillTile === holeSkillTile) continue;
@@ -243,50 +270,93 @@ export function addHomePage() {
         return { container, titleText, descriptionText, springX, springY, springSizeY, springSig };
     }
 
-    const holeSkillTile = addSkillTile("", "", 2, 1);
+    const holeSkillTile = addSkillTile("", "");
     holeSkillTile.container.style.background = "#00000033";
 
     const skillTiles = [
-        addSkillTile("Owner<br>Representation", "KORE serves as your eyes, ears, and advocates, providing concierge-level guidance through every step of your project. We keep vendors and contractors honest, making sure nothing slips through the cracks. We begin by aligning all stakeholders early on, then defend your position throughout the process.", 0, 0), //
-        addSkillTile("Basis of<br>Design", "KORE listens before we advise. We review your current operation, future plans, and overall goals. Your new space and systems must gracefully support operational needs and future growth. Deep expertise in systems planning and infrastructure strategy allows KORE to translate vision into a comprehensive BoD.", 1, 0),
-        addSkillTile("Proof of<br>Concept", "KORE knows you only get one chance to build a new facility right. You deserve to see ideas thoroughly tested and validated before you commit. We vet technology, vendors, and assurances against real-world criteria. This brings clarity to your workflow and puts measurable accountability behind every promise.", 2, 0),
-        addSkillTile("Project Team<br>Assembly", "KORE brings together the right team for your project. We draw from a network of trusted experts in design, engineering, installation, and more. These are proven pros who’ve shown they can execute under pressure without missing a beat. That translates to performance, not excuses.", 3, 0),
-        addSkillTile("Punch List<br>Management", "KORE tracks every detail, from building construction to systems integration to ongoing services. It’s critical to make sure all the tech works, all promises are fulfilled. Nothing is signed-off until it’s tested, verified, and right. Relentless follow-through takes extra effort, but we stubbornly refuse to compromise.", 4, 0),
-        addSkillTile("Needs<br>Analysis", "KORE guides you to uncover and understand exactly what’s needed, what's possible, and what’s worth pursuing. Ask anyone who’s been through this process – early-phase project intelligence makes all the difference. Make smarter, faster decisions with clarity and confidence, and avoid costly mistakes.", 0, 1),
-        addSkillTile("Budgeting &<br>Estimating", "KORE offers a budgeting process shaped by real-world engineering experience. We provide early cost models, detailed projections, and phased investment strategies to help you stay informed, in control, and within budget. Our early work helps you to minimize scope creep and avoid financial surprises.", 1, 1),
+        addSkillTile("Owner<br>Representation", "KORE serves as your eyes, ears, and advocates, providing concierge-level guidance through every step of your project. We keep vendors and contractors honest, making sure nothing slips through the cracks. We begin by aligning all stakeholders early on, then defend your position throughout the process."), //
+        addSkillTile("Basis of<br>Design", "KORE listens before we advise. We review your current operation, future plans, and overall goals. Your new space and systems must gracefully support operational needs and future growth. Deep expertise in systems planning and infrastructure strategy allows KORE to translate vision into a comprehensive BoD."),
+        addSkillTile("Proof of<br>Concept", "KORE knows you only get one chance to build a new facility right. You deserve to see ideas thoroughly tested and validated before you commit. We vet technology, vendors, and assurances against real-world criteria. This brings clarity to your workflow and puts measurable accountability behind every promise."),
+        addSkillTile("Project Team<br>Assembly", "KORE brings together the right team for your project. We draw from a network of trusted experts in design, engineering, installation, and more. These are proven pros who’ve shown they can execute under pressure without missing a beat. That translates to performance, not excuses."),
+        addSkillTile("Punch List<br>Management", "KORE tracks every detail, from building construction to systems integration to ongoing services. It’s critical to make sure all the tech works, all promises are fulfilled. Nothing is signed-off until it’s tested, verified, and right. Relentless follow-through takes extra effort, but we stubbornly refuse to compromise."),
+        addSkillTile("Needs<br>Analysis", "KORE guides you to uncover and understand exactly what’s needed, what's possible, and what’s worth pursuing. Ask anyone who’s been through this process – early-phase project intelligence makes all the difference. Make smarter, faster decisions with clarity and confidence, and avoid costly mistakes."),
+        addSkillTile("Budgeting &<br>Estimating", "KORE offers a budgeting process shaped by real-world engineering experience. We provide early cost models, detailed projections, and phased investment strategies to help you stay informed, in control, and within budget. Our early work helps you to minimize scope creep and avoid financial surprises."),
         holeSkillTile,
-        addSkillTile("RFP Creation<br>& Administration", "KORE captures the project objectives, outlines the scope, defines the qualifications, and structures the response required of every project solicitation that we produce. We then structure the bid evaluation process and guide you through the critical decision-making, leaving nothing to chance.", 3, 1),
-        addSkillTile("Integrator<br>Support", "KORE partners with your integrator to lead the process, protect your vision, and make sure every workflow is delivered exactly as designed. With integration leadership and oversight rooted in decades of experience, we preserve the integrity of your design. We don’t accept compromises. Neither should you.", 4, 1),
+        addSkillTile("RFP Creation<br>& Administration", "KORE captures the project objectives, outlines the scope, defines the qualifications, and structures the response required of every project solicitation that we produce. We then structure the bid evaluation process and guide you through the critical decision-making, leaving nothing to chance."),
+        addSkillTile("Integrator<br>Support", "KORE partners with your integrator to lead the process, protect your vision, and make sure every workflow is delivered exactly as designed. With integration leadership and oversight rooted in decades of experience, we preserve the integrity of your design. We don’t accept compromises. Neither should you."),
     ];
-    const skillTileCountX = Math.max(...skillTiles.map((s) => s.springX.target)) + 1;
-    skillTiles[2].container.click();
+
+    function layoutTiles(tileSize: number, tileGap: number, tilePosX: (x: number) => number, tilePosY: (y: number) => number) {
+        for (let i = 0; i < skillTiles.length; i++) {
+            const skillTile = skillTiles[i];
+            skillTile.springX.position = skillTile.springX.target = i % skillTileCountX;
+            skillTile.springY.position = skillTile.springY.target = i % skillTileCountY;
+        }
+
+        springSig.unsubscribeAll();
+        effect(() => {
+            for (const skillTile of skillTiles) {
+                const { container, titleText, descriptionText, springX, springY, springSizeY } = skillTile;
+
+                setSizeX(container, tileSize);
+                setSizeY(container, tileSize * springSizeY.position + (springSizeY.position - 1) * tileGap);
+
+                setPosX(container, tilePosX(springX.position));
+                setPosY(container, tilePosY(springY.position));
+
+                // styleText(titleText, { letterSpacing: 0.0004 * s, fontWeight: 500, color: black, fontSize: 0.05 * s, fontFamily: "Roboto" });
+                styleText(titleText, { letterSpacing: 0.0004 * tileSize, fontWeight: 500, color: black, fontSize: 0.1 * tileSize, fontFamily: "Roboto" });
+                setPosX(titleText, 0.08 * tileSize);
+                setPosY(titleText, tileSize / 2 - sizeY(titleText) / 2);
+
+                // styleText(descriptionText, { letterSpacing: 0.0004 * s, fontWeight: 400, color: black, fontSize: 0.025 * s, lineHeight: 0.04 * s, fontFamily: "Roboto" });
+                styleText(descriptionText, { letterSpacing: 0.001 * tileSize, fontWeight: 400, color: black, fontSize: 0.07 * tileSize, lineHeight: 0.095 * tileSize, fontFamily: "Roboto" });
+                setSizeX(descriptionText, tileSize * 0.85);
+                setPosX(descriptionText, 0.08 * tileSize);
+                setPosY(descriptionText, 0.7 * tileSize);
+            }
+        }, [springSig]);
+    }
 
     const sectionLine3 = addSectionLine();
 
     const bigNames = addScrollText("BIG NAMES<br>YOU KNOW");
-    const hasTackled = addScrollText("<strong>Scott Griffin</strong> has tackled some of the most complex projects for some of the largest media companies in the world.<br>He has seen it all, and you can tap into that experience.");
+    const hasTackled = addScrollText("<strong>Scott Griffin</strong> has tackled some of the most complex projects for some of the largest media companies in the world. He has seen it all, and you can tap into that experience.");
 
     const bigNameClients = [
-        ["ABS/CBN", "National Geographic"], //
-        ["Blackrock", "Northwestern University"],
-        ["Blackstone", "Paramount/CBS"],
-        ["CBS", "MTV/Showtime"],
-        ["CNN", "Penn State University"],
-        ["Disney/ABC/ESPN", "Prudential"],
-        ["Fox News", "Sirius Satellite Radio"],
-        ["Madison Square Garden", "Syracuse University"],
-        ["MLB", "Televisa-Univision"],
-        ["MSNBC", "The New York Times"],
-        ["NBA", "WWE"],
-        ["NBCU/CNBC"],
+        "ABS/CBN", //
+        "Blackrock",
+        "Blackstone",
+        "CBS",
+        "CNN",
+        "Disney/ABC/ESPN",
+        "Fox News",
+        "Madison Square Garden",
+        "MLB",
+        "MSNBC",
+        "NBA",
+        "NBCU/CNBC",
+        "National Geographic",
+        "Northwestern University",
+        "Paramount/CBS",
+        "MTV/Showtime",
+        "Penn State University",
+        "Prudential",
+        "Sirius Satellite Radio",
+        "Syracuse University",
+        "Televisa-Univision",
+        "The New York Times",
+        "WWE",
     ];
 
-    const bigNameClientTexts = bigNameClients.map((bigNameClientsRow) => bigNameClientsRow.map((bigNameClient) => addScrollText(bigNameClient)));
+    const bigNameClientTexts = bigNameClients.map((bigNameClient) => addScrollText(bigNameClient));
 
     const sectionLine4 = addSectionLine();
 
-    const griffinBlackWhite = addScrollImage("griffin-black-white.png");
+    const griffinBlackWhiteLandscape = addScrollImage("griffin-black-white-landscape.png");
+    const griffinBlackWhitePortrait = addScrollImage("griffin-black-white-portrait.jpg");
     const griffinBlackWhiteText = addScrollText("I’ve been in this industry for more than 35 years, and I can’t think of one client who was able to successfully navigate the gauntlet that is a large media facility project without the support of an experienced, knowledgeable, and aggressive project facilitator.");
+    griffinBlackWhiteText.style.fontStyle = "italic";
 
     const sectionLine5 = addSectionLine();
 
@@ -342,6 +412,7 @@ export function addHomePage() {
             const s = getScrollWidth();
 
             const margin = 0.05 * s;
+            const betweenMargin = s - margin * 2;
             const fromTop = 0.031 * s;
 
             const bigTextTextDetails = { fontWeight: 300, color: white, fontSize: 0.075 * s, lineHeight: 0.084 * s, fontFamily: "Roboto" };
@@ -375,6 +446,8 @@ export function addHomePage() {
             const longParagraphsTextDetails = { letterSpacing: 0.001 * s, fontWeight: 300, color: white, fontSize: 0.01 * s, lineHeight: 0.02 * s, fontFamily: "Merriweather" };
             styleText(aboutDescription, longParagraphsTextDetails);
 
+            skillTileCountX = 5;
+            skillTileCountY = 2;
             const scrollWidth = innerWidth - 2 * margin; // ZZZZ another scroll width?
             const tileGap = 0.015 * s;
             const tileSize = (scrollWidth - tileGap * (skillTileCountX - 1)) / skillTileCountX;
@@ -406,30 +479,12 @@ export function addHomePage() {
 
             const feelConfidentTextDetails = { fontWeight: 300, color: white, fontSize: 0.028 * s, fontFamily: "Roboto" };
             styleText(feelConfident, feelConfidentTextDetails);
+            setSizeX(feelConfident, betweenMargin);
             setPosY(feelConfident, posY(sectionLine2) + sectionLineGap);
             setPosX(feelConfident, margin);
 
-            springSig.unsubscribeAll();
-            effect(() => {
-                for (const skillTile of skillTiles) {
-                    const { container, titleText, descriptionText, springX, springY, springSizeY } = skillTile;
-
-                    setSizeX(container, tileSize);
-                    setSizeY(container, tileSize * springSizeY.position + (springSizeY.position - 1) * tileGap);
-
-                    setPosX(container, tilePosX(springX.position));
-                    setPosY(container, tilePosY(springY.position));
-
-                    styleText(titleText, { letterSpacing: 0.0004 * s, fontWeight: 500, color: black, fontSize: 0.018 * s, fontFamily: "Roboto" });
-                    setPosX(titleText, 0.08 * tileSize);
-                    setPosY(titleText, tileSize / 2 - sizeY(titleText) / 2);
-
-                    styleText(descriptionText, { letterSpacing: 0.0004 * s, fontWeight: 400, color: black, fontSize: 0.011 * s, lineHeight: 0.016 * s, fontFamily: "Roboto" });
-                    setSizeX(descriptionText, tileSize - 0.03 * s);
-                    setPosX(descriptionText, 0.08 * tileSize);
-                    setPosY(descriptionText, 0.11 * s);
-                }
-            }, [springSig]);
+            layoutTiles(tileSize, tileGap, tilePosX, tilePosY);
+            skillTiles[2].container.click();
 
             layoutSectionLine(sectionLine3, tilePosY(1) + tileSize + sectionLineGap);
 
@@ -443,31 +498,35 @@ export function addHomePage() {
             setPosY(hasTackled, posEndY(bigNames) + bigTextToSubtextGap);
             setPosX(hasTackled, margin);
 
-            const lastBigName = bigNameClientTexts[bigNameClientTexts.length - 1][0];
+            const lastBigName = bigNameClientTexts[bigNameClientTexts.length - 1];
             const bigNamesTextDetails = { fontWeight: 300, color: white, fontSize: 0.018 * s, fontFamily: "Roboto" };
-            for (let y = 0; y < bigNameClientTexts.length; y++) {
-                for (let x = 0; x < bigNameClientTexts[y].length; x++) {
-                    const o = bigNameClientTexts[y][x];
 
-                    styleText(o, bigNamesTextDetails);
+            const halfClientLength = Math.ceil(bigNameClientTexts.length / 2);
+            for (let i = 0; i < bigNameClientTexts.length; i++) {
+                const x = Math.floor(i / halfClientLength);
+                const y = i % halfClientLength;
+                const o = bigNameClientTexts[i];
 
-                    setPosY(o, posY(bigNames) + 0.01 * s + 0.032 * y * s);
-                    setPosX(o, gutteredColumn + 0.22 * x * s);
-                }
+                styleText(o, bigNamesTextDetails);
+
+                setPosY(o, posY(bigNames) + 0.01 * s + 0.032 * y * s);
+                setPosX(o, gutteredColumn + 0.22 * x * s);
             }
 
             layoutSectionLine(sectionLine4, posEndY(lastBigName) + sectionLineGap);
 
-            setSizeX(griffinBlackWhite, s);
-            setPosY(griffinBlackWhite, posEndY(sectionLine4) + sectionLineGap);
+            setImageSizeX(griffinBlackWhitePortrait, 0);
+
+            setImageSizeX(griffinBlackWhiteLandscape, s);
+            setPosX(griffinBlackWhiteLandscape, 0);
+            setPosY(griffinBlackWhiteLandscape, posEndY(sectionLine4) + sectionLineGap);
 
             const griffinBlackWhiteTextDetails = { fontWeight: 400, color: black, fontSize: 0.02 * s, lineHeight: 0.04 * s, fontFamily: "Merriweather" };
-            griffinBlackWhiteText.style.fontStyle = "italic";
             styleText(griffinBlackWhiteText, griffinBlackWhiteTextDetails);
             setPosX(griffinBlackWhiteText, gutteredColumn);
-            setPosY(griffinBlackWhiteText, posY(griffinBlackWhite) + sizeY(griffinBlackWhite) / 2 - sizeY(griffinBlackWhiteText) / 2);
+            setPosY(griffinBlackWhiteText, posY(griffinBlackWhiteLandscape) + sizeY(griffinBlackWhiteLandscape) / 2 - sizeY(griffinBlackWhiteText) / 2);
 
-            layoutSectionLine(sectionLine5, posEndY(griffinBlackWhite) + sectionLineGap);
+            layoutSectionLine(sectionLine5, posEndY(griffinBlackWhiteLandscape) + sectionLineGap);
 
             // bio
 
@@ -535,7 +594,6 @@ export function addHomePage() {
             const s = getScrollWidth();
 
             const margin = 0.09 * s;
-            const fromTop = 0.031 * s;
             const betweenMargin = s - margin * 2;
 
             const bigTextTextDetails = { fontWeight: 300, color: white, fontSize: 0.15 * s, lineHeight: 0.18 * s, fontFamily: "Roboto" };
@@ -571,7 +629,7 @@ export function addHomePage() {
             setPosX(aboutName, margin);
             setPosY(aboutName, posEndY(portrait) + 0.2 * s);
 
-            const longParagraphsTextDetails = { letterSpacing: 0.001 * s, fontWeight: 300, color: white, fontSize: 0.045 * s, lineHeight: 0.1 * s, fontFamily: "Merriweather" };
+            const longParagraphsTextDetails = { letterSpacing: 0.001 * s, fontWeight: 400, color: white, fontSize: 0.045 * s, lineHeight: 0.1 * s, fontFamily: "Merriweather" };
             styleText(aboutDescription, longParagraphsTextDetails);
             setSizeX(aboutDescription, betweenMargin);
             setPosX(aboutDescription, margin);
@@ -581,90 +639,69 @@ export function addHomePage() {
 
             // tiles
 
-            const feelConfidentTextDetails = { fontWeight: 300, color: white, fontSize: 0.028 * s, fontFamily: "Roboto" };
+            const feelConfidentTextDetails = { fontWeight: 300, color: white, fontSize: 0.06 * s, fontFamily: "Roboto" };
             styleText(feelConfident, feelConfidentTextDetails);
-            setPosY(feelConfident, T);
-            setPosX(feelConfident, T);
+            setSizeX(feelConfident, betweenMargin);
+            setPosX(feelConfident, margin);
+            setPosY(feelConfident, posY(sectionLine2) + sectionLineGap);
 
-            const scrollWidth = innerWidth - 2 * margin; // ZZZZ another scroll width?
-            const tileGap = 0.015 * s;
-            const tileSize = (scrollWidth - tileGap * (skillTileCountX - 1)) / skillTileCountX;
-
+            skillTileCountX = 2;
+            skillTileCountY = 5;
+            const tileGap = 0.03 * s;
+            const tileSize = (betweenMargin - tileGap * (skillTileCountX - 1)) / skillTileCountX;
             function tilePosX(x: number) {
-                return T;
-                // return margin + (tileSize + tileGap) * x;
+                return margin + (tileSize + tileGap) * x;
             }
-
             function tilePosY(y: number) {
-                return T;
-                // return (tileSize + tileGap) * y + posEndY(feelConfident) + 0.04 * s;
+                return (tileSize + tileGap) * y + posEndY(feelConfident) + 0.04 * s;
             }
+            layoutTiles(tileSize, tileGap, tilePosX, tilePosY);
+            skillTiles[2].container.click();
 
-            springSig.unsubscribeAll();
-            effect(() => {
-                for (const skillTile of skillTiles) {
-                    const { container, titleText, descriptionText, springX, springY, springSizeY } = skillTile;
-
-                    setSizeX(container, tileSize);
-                    setSizeY(container, tileSize * springSizeY.position + (springSizeY.position - 1) * tileGap);
-
-                    setPosX(container, tilePosX(springX.position));
-                    setPosY(container, tilePosY(springY.position));
-
-                    styleText(titleText, { letterSpacing: 0.0004 * s, fontWeight: 500, color: black, fontSize: 0.018 * s, fontFamily: "Roboto" });
-                    setPosX(titleText, 0.08 * tileSize);
-                    setPosY(titleText, tileSize / 2 - sizeY(titleText) / 2);
-
-                    styleText(descriptionText, { letterSpacing: 0.0004 * s, fontWeight: 400, color: black, fontSize: 0.011 * s, lineHeight: 0.016 * s, fontFamily: "Roboto" });
-                    setSizeX(descriptionText, tileSize - 0.03 * s);
-                    setPosX(descriptionText, 0.08 * tileSize);
-                    setPosY(descriptionText, 0.11 * s);
-                }
-            }, [springSig]);
-
-            layoutSectionLine(sectionLine3, T);
+            layoutSectionLine(sectionLine3, tilePosY(4) + tileSize + sectionLineGap);
 
             styleText(bigNames, bigTextTextDetails);
-            setPosY(bigNames, T);
-            setPosX(bigNames, T);
+            setPosX(bigNames, margin);
+            setPosY(bigNames, posY(sectionLine3) + sectionLineGap);
 
-            const hasTackedTextDetails = { fontWeight: 300, color: metal, fontSize: 0.014 * s, lineHeight: 0.025 * s, fontFamily: "Roboto" };
+            const hasTackedTextDetails = { fontWeight: 400, color: metal, fontSize: 0.065 * s, lineHeight: 0.11 * s, fontFamily: "Roboto" };
             styleText(hasTackled, hasTackedTextDetails);
             setSizeX(hasTackled, sizeX(bigNames) - 0.025 * s);
-            setPosY(hasTackled, T);
-            setPosX(hasTackled, T);
+            setPosX(hasTackled, margin);
+            setPosY(hasTackled, posEndY(bigNames) + 0.06 * s);
 
-            const lastBigName = bigNameClientTexts[bigNameClientTexts.length - 1][0];
-            const bigNamesTextDetails = { fontWeight: 300, color: white, fontSize: 0.018 * s, fontFamily: "Roboto" };
-            for (let y = 0; y < bigNameClientTexts.length; y++) {
-                for (let x = 0; x < bigNameClientTexts[y].length; x++) {
-                    const o = bigNameClientTexts[y][x];
+            const lastBigName = bigNameClientTexts[bigNameClientTexts.length - 1];
+            const bigNamesTextDetails = { fontWeight: 400, color: white, fontSize: 0.065 * s, lineHeight: 0.11 * s, fontFamily: "Roboto" };
+            for (let i = 0; i < bigNameClientTexts.length; i++) {
+                const o = bigNameClientTexts[i];
 
-                    styleText(o, bigNamesTextDetails);
+                styleText(o, bigNamesTextDetails);
 
-                    setPosY(o, T);
-                    setPosX(o, T);
-                }
+                setPosX(o, margin);
+                setPosY(o, posEndY(hasTackled) + 0.25 * s + 0.14 * i * s);
             }
 
             layoutSectionLine(sectionLine4, posEndY(lastBigName) + sectionLineGap);
 
-            setSizeX(griffinBlackWhite, T);
-            setPosY(griffinBlackWhite, T);
+            setImageSizeX(griffinBlackWhiteLandscape, 0);
 
-            const griffinBlackWhiteTextDetails = { fontWeight: 400, color: black, fontSize: 0.02 * s, lineHeight: 0.04 * s, fontFamily: "Merriweather" };
-            griffinBlackWhiteText.style.fontStyle = "italic";
+            setImageSizeX(griffinBlackWhitePortrait, s);
+            setPosX(griffinBlackWhitePortrait, 0);
+            setPosY(griffinBlackWhitePortrait, posY(sectionLine4) + sectionLineGap);
+
+            const griffinBlackWhiteTextDetails = { fontWeight: 400, color: black, fontSize: 0.073 * s, lineHeight: 0.14 * s, fontFamily: "Merriweather" };
             styleText(griffinBlackWhiteText, griffinBlackWhiteTextDetails);
-            setPosX(griffinBlackWhiteText, T);
-            setPosY(griffinBlackWhiteText, T);
+            setSizeX(griffinBlackWhiteText, betweenMargin);
+            setPosX(griffinBlackWhiteText, margin);
+            setPosY(griffinBlackWhiteText, posY(griffinBlackWhitePortrait) + 0.2 * s);
 
-            layoutSectionLine(sectionLine5, T);
+            layoutSectionLine(sectionLine5, posEndY(griffinBlackWhitePortrait) + sectionLineGap);
 
             // bio
 
             styleText(bioHeader, bigTextTextDetails);
             setPosX(bioHeader, margin);
-            setPosY(bioHeader, posEndY(sectionLine2) + sectionLineGap); // ZZZZ skipped a bunch
+            setPosY(bioHeader, posEndY(sectionLine5) + sectionLineGap);
 
             styleText(bioText, longParagraphsTextDetails);
             setSizeX(bioText, betweenMargin);

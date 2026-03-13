@@ -17,35 +17,6 @@ scrollContainer.onwheel = (e) => {
     if (isLandscape() && !e.shiftKey) scrollContainer.scrollBy({ left: e.deltaY });
 };
 
-export function resizeScrollContainerLandscape() {
-    const scrollHeight = getScrollHeight();
-
-    const scrollLeft = scrollHeight * 0.5;
-
-    const underScrollContainer = (innerHeight - scrollHeight) / 2;
-    scrollContainer.style.height = px(scrollHeight + underScrollContainer); // place scroll bar at bottom of page
-    scrollContainer.style.width = px(innerWidth - scrollLeft);
-    scrollContainer.style.top = px((innerHeight - scrollHeight) / 2);
-    scrollContainer.style.left = px(scrollLeft);
-
-    scrollContainer.style.overflowX = "scroll";
-    scrollContainer.style.overflowY = "hidden";
-    scrollContainer.scrollTop = 0;
-}
-
-export function resizeScrollContainerPortrait() {
-    const scrollWidth = getScrollWidth();
-    const headerBarHeight = getHeaderBarHeight();
-    scrollContainer.style.width = px(scrollWidth);
-    scrollContainer.style.height = px(innerHeight - headerBarHeight);
-    scrollContainer.style.left = px((innerWidth - scrollWidth) / 2);
-    scrollContainer.style.top = px(headerBarHeight);
-
-    scrollContainer.style.overflowX = "hidden";
-    scrollContainer.style.overflowY = "scroll";
-    scrollContainer.scrollLeft = 0;
-}
-
 export function resizeScrollContainerFull() {
     const headerBarHeight = getHeaderBarHeight();
     scrollContainer.style.width = px(innerWidth);
@@ -60,9 +31,9 @@ export function resizeScrollContainerFull() {
 
 export const getHeaderBarHeight = () => {
     if (isLandscape()) {
-        return (innerHeight - getScrollHeight()) / 2;
+        return innerWidth * 0.08;
     } else {
-        return innerHeight * 0.15;
+        return innerWidth * 0.15;
     }
 };
 
@@ -126,23 +97,10 @@ export function styleScrollTextSquare({ major, minors }: TextSquare, majorTextDe
     for (const minor of minors) styleText(minor, minorTextDetails);
 }
 
-export function getScrollHeight() {
-    return innerHeight * 0.7;
-    // return 1.02 * innerHeight - 0.000485 * innerHeight * innerHeight;
-    // return innerHeight;
-}
-
 export function getScrollWidth() {
-    return innerWidth
+    return innerWidth;
     // const SCROLL_WIDTH_PROPORTION = 1;
     // return innerWidth * SCROLL_WIDTH_PROPORTION;
-}
-
-export function centerWithinScrollY(element: HTMLElement | SVGSVGElement, scale: number) {
-    const s = getScrollHeight();
-    const height = s * scale;
-    element.style.height = px(height);
-    element.style.top = px((s - height) / 2);
 }
 
 export function centerWithinScrollX(element: HTMLElement | SVGSVGElement, scale: number) {

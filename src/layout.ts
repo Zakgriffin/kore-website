@@ -75,8 +75,8 @@ export function setSizeX(element: BoxElement, x: number) {
 }
 
 export function setImageSizeX(image: HTMLImageElement, x: number) {
-    setSizeX(image, x)
-    setSizeY(image, x * image.naturalHeight / image.naturalWidth)
+    setSizeX(image, x);
+    setSizeY(image, (x * image.naturalHeight) / image.naturalWidth);
 }
 
 export function sizeY(element: BoxElement) {
@@ -89,8 +89,8 @@ export function setSizeY(element: BoxElement, y: number) {
 }
 
 export function setImageSizeY(image: HTMLImageElement, y: number) {
-    setSizeY(image, y)
-    setSizeX(image, y *  image.naturalWidth / image.naturalHeight)
+    setSizeY(image, y);
+    setSizeX(image, (y * image.naturalWidth) / image.naturalHeight);
 }
 
 // ZZZZ want a short hand for common simple use
@@ -110,12 +110,12 @@ export function centerWithGapY(elements: HTMLElement[], gap: number, center: num
     }
 }
 
-export function centerElementX(element: HTMLElement) {
-    element.style.left = px(innerWidth / 2 - sizeX(element) / 2);
+export function centerX(parent: BoxElement, child: BoxElement) {
+    return (sizeX(parent) - sizeX(child)) / 2;
 }
 
-export function centerElementY(element: HTMLElement) {
-    element.style.top = px(innerHeight / 2 - sizeY(element) / 2);
+export function centerY(parent: BoxElement, child: BoxElement) {
+    return (sizeY(parent) - sizeY(child)) / 2;
 }
 
 export function styleText(scrollText: HTMLElement, s: TextDetails) {
